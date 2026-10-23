@@ -1,0 +1,31 @@
+# Python and OS clutter
+.DS_Store
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ipynb_checkpoints/
+
+# Occurrence outputs. run_occurrence.py writes every product beneath results/,
+# and collect_paper_items.py gathers the paper's copies into paper_items/.
+/results/
+/paper_items/
+
+# Stray outputs written outside results/ (e.g. from ad hoc runs at the top level)
+/*.png
+/*.pdf
+/*.npz
+/*.npy
+/*.pkl
+
+# Logs and batch-job output from remote runs
+*.log
+nohup.out
+slurm-*.out
+*.err
+
+# Machine-specific input paths (see local_paths.example.json)
+/local_paths.json
+
+# Large inputs kept outside version control; point local_paths.json at them
+/data/cls_recoveries/
+/resampled_posteriors_1ksamples/

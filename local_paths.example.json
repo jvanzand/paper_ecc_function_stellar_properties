@@ -1,0 +1,4 @@
+{
+  "recoveries_dir": "/absolute/path/to/cls_recoveries",
+  "posteriors_dir": "/absolute/path/to/resampled_posteriors_1ksamples"
+}
