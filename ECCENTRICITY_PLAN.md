@@ -171,6 +171,64 @@ assumed.
 - **Done when:** maps can be built for any role assignment, with
   effective-count diagnostics saved alongside them.
 
+### 3b. Fill the injection window (deferred; not implemented)
+
+The sliced maps replaced the weighting in step 3 (see Implementation
+notes), but they inherit the same gaps: map cells with no injections. This
+step fills them from physics instead of leaving them NaN. Not needed for the
+current runs; written out so it can be added later.
+
+- **Where the gaps are.** For a star of mass M_star and an e slice with
+  midpoint e_s, a cell centered on (a, m) has semi-amplitude
+  K = 28.4 m/s (m sin i / M_Jup) (P / 1 yr)^(-1/3) (M_star / M_sun)^(-2/3)
+  (1 - e_s^2)^(-1/2), with P from a and M_star. Injections span
+  0.1-1000 m/s in K, so cells with K > 1000 m/s (massive, close-in) and
+  K < 0.1 m/s (low mass, wide) have no injections. Gaps also open inside
+  the window where a slice is sparse (the e = 0.8-1 slice has ~60
+  injections per star).
+- **What happens now.** `fill_completeness_nans` walks along mass at fixed
+  a: a NaN cell next to a measured value >= 0.9 (on its low-mass side) is
+  set to 1, and one next to a value < 0.001 (on its high-mass side) is set
+  to 0. It needs a near-certain neighbor, ignores K, and leaves gaps next
+  to intermediate values (common in sparse slices). Those cells fall back
+  to the sample average for companions, and the average itself takes the
+  next lower-e slice where no star has a value.
+- **Option A, threshold fill (crude).** After `moving_average_grid(...,
+  fill_nans=False)`, compute K at each NaN cell for that star and slice, and
+  set completeness to 1 where K > K_high and 0 where K < K_low, leaving
+  measured cells unchanged. K_high = 1000 m/s and K_low = 0.1 m/s match
+  the injection window; tighter values (e.g. 30 and 1 m/s) are safer only
+  if checked against the measured maps. The 1-fill is safe because the
+  empty high-K corner is at short periods, well inside every baseline.
+  Then apply `fill_completeness_nans` as now. Cheap, and it removes the
+  dependence on a near-certain neighbor.
+- **Option B, functional fill.** Fit each star's recoveries with a logistic
+  model, P(recovered) = 1 / (1 + exp(-(log K - k50(log P)) / w)), where
+  k50 is a smooth function of log P (e.g. a few-knot spline, rising past
+  the baseline) and w a width. Including (1 - e^2)^(-1/2) in K lets one
+  model use the injections of all e slices, so sparse high-e slices borrow
+  strength from the rest. Fit by maximizing the Bernoulli likelihood of the
+  recovered flags (about 10^4 injections per star; seconds each). Fill NaN
+  cells, or every cell outside the window, with the model.
+- **Choosing.** For each fit, report the share of the expected-detection
+  weight (marginal density times completeness, integrated over the
+  marginalized dimensions) that falls in filled cells. If it is below ~1%,
+  Option A is enough. If not, use Option B and compare the two; the
+  difference bounds the fill's systematic error.
+- **Bookkeeping.** Add a `window_fill` setting (None, "threshold",
+  "logistic") to `sliced_map_maker`, save it with the sliced maps, and
+  include it in the dimension-spec token, so cached Tier 2 files built with
+  one fill are never reused with another.
+- **Tests.** With `window_fill=None` the maps are unchanged (the regression
+  run must still match). On synthetic injections drawn from a known
+  logistic completeness and cut to a K window, both options fill measured
+  cells never, and Option B recovers the truth outside the window within
+  its fit errors; Option A recovers it where the truth is within 1% of
+  0 or 1.
+- **Files:** `completeness_utils.py` (`fill_injection_window`, used by
+  `_process_single_star_sliced`), `main.py` (pass the setting), tests in
+  `tests/test_eccentricity.py`.
+
 ### 4. Build completeness over the fitted dimensions
 
 - **Goal:** per-host and sample-averaged completeness maps over the fitted
@@ -335,13 +393,15 @@ above. Each is documented in the code where it applies.
 - **Mass-ratio Tier 1 folders** (qtrue, qsini) are not supported with
   explicit roles yet: the default mass distribution is in M_Jup.
 - **Missing posterior eccentricities.** GL 876 (b, c, d), HD 219134
-  (b-f), and HD 28185 (b, c) use literature values, drawn from split
-  normals truncated to [0, 1) independently of a and m
+  (`_0` to `_4`, inner to outer), and HD 28185 (b, c) use literature
+  values, drawn from split normals truncated to [0, 1) independently of a
+  and m
   (`sampling_utils.LITERATURE_ECCENTRICITIES`). The files order companions
   by semi-major axis, inner first; each entry records the planet's
-  literature a, and sampling raises if the file disagrees. (The first pass
-  had HD 219134 misordered, giving HD 219134 e the eccentricity of b; fixed
-  2026-10-23. HD 28185 c's literature a is not yet recorded.)
+  literature a, and sampling raises if the file disagrees. HD 219134 values
+  come from the CLS table; its planets are named by index (`_0` innermost)
+  because letters differ between sources. HD 28185 c's literature a is not
+  yet recorded.
 - **Eccentricity models (step 7):** `beta` (A, alpha, beta), `rayleigh`
   (A, sigma_e), and `ecc_mixture` (A, f1, sigma1, sigma2; sigma1 < sigma2),
   each A f(e) with f normalized over the fitted e range. Priors are uniform
