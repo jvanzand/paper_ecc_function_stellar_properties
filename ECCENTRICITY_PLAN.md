@@ -355,3 +355,34 @@ above. Each is documented in the code where it applies.
   metallicity, and activity samples; histogram, Beta, Rayleigh, and
   two-Rayleigh models) and `stellar2params` (histogram only). Post-fit
   products stack over m and use the eccentricity models.
+
+## First results (2026-10-22, `ecc_added` 4c9c3ab, not production runs)
+
+- **Regression.** Seeded, shortened mass- and SMA-function runs on master
+  and on `ecc_added` match in all 6,515 output arrays and tables
+  (`validation/regression_run.py`, `compare_runs.py`).
+- **Mocks** (`validation/mock_validation.py`; truth Beta(1.5, 4), 0.30
+  companions per star; three seeds each). With e uncertainties of 0.05,
+  the rate, alpha, and beta are recovered within about 1 sigma, scattered
+  on both sides. With 0.15, rates are recovered but alpha and beta tend
+  low (means 1.33 and 3.42), a slightly broader f(e); each seed is within
+  about 1.3 sigma, so more seeds are needed before calling it a bias.
+- **All-star CLS fit** (0.1-30 AU, 0.4-50 MJ; 104 companions mostly in
+  the region): 0.27-0.29 companions per star. Beta alpha = 0.87 +/- 0.08,
+  beta = 1.9 +/- 0.3; Rayleigh sigma = 0.26 +/- 0.02. Delta BIC against a
+  flat f(e): Beta +26, two-Rayleigh +26, Rayleigh -47 (positive favors the
+  model). The two-Rayleigh narrow component sits at its prior floor
+  (sigma1 = 0.005, f1 = 0.27): about ten near-circular companions, mostly
+  warm Jupiters at 0.1-0.2 AU plus GL 876 b and c.
+- **Cost.** The all-star run (four models, 3000-step chains) took 1.4 h and
+  0.36 GB; the two-Rayleigh and histogram chains need roughly 4 and 1.5
+  times more steps to reach 50 autocorrelation times.
+
+## Open issues from the first results
+
+- The e = 0.8-1 slice has about 60 injections per star and ~70% of each
+  star's cells have no estimate, so companions there use the average map.
+  Wider top slices, or more injections, would help.
+- Tidal circularization: should the inner bound move from 0.1 AU (the
+  near-circular warm Jupiters drive the narrow mixture component)?
+- The two-Rayleigh sigma1 prior floor (0.005) sets that component's width.
