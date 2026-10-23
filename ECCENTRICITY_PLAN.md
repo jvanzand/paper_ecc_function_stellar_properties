@@ -286,3 +286,66 @@ assumed.
 - Whether the expected-detection term should also use per-host completeness
   (summed over hosts) rather than the sample average once maps carry
   weights.
+
+## Implementation notes (ecc_added, first pass)
+
+Decisions made while implementing, and how they differ from the steps
+above. Each is documented in the code where it applies.
+
+- **Completeness in e: slices, not per-injection weights (steps 3-4).**
+  Each star's injections are split into eccentricity slices (edges 0, 0.1,
+  0.2, 0.3, 0.4, 0.5, 0.6, 0.8, 1; `completeness_utils.ECC_SLICE_EDGES`), and
+  each slice gets an ordinary (a, m) map from the original moving-average
+  estimator and NaN-fill rules on a grid shared by all slices
+  (`sliced_map_maker`). Completeness is piecewise constant in e within a
+  slice. Because injections are log-uniform in (a, M sin i) inside the K
+  window, binning in (a, m) needs no reweighting there, and the high-mass
+  fill rule handles the window's empty corner, so the edge bias described
+  in step 3 does not arise. A single slice spanning [0, 1] reproduces the
+  original map exactly (tested). Marginalizing integrates the sliced maps
+  over the marginalized dimensions with their distributions' exact cell
+  probabilities (`engine_completeness`), and stops with an error if a
+  marginalized range contains a point with no estimate.
+- **Linear axes without changing the engine (step 6).** Eccentricity
+  enters the engine as u = 10^e, so the engine's log10 axes are linear in e
+  (a bin uniform in e is uniform in log10 u, and orvara's uniform-e prior is
+  uniform in log10 u). `dimensions.DimensionSpec.to_engine`/`from_engine`
+  convert; plots label ticks with e (`plotting_utils.axis_style`).
+- **Engine slots.** A run fits one or two of a, m, e. The engine's x slot
+  holds the first fitted dimension (order a, m, e) and its y slot the
+  second; for a 1D fit, y holds a marginalized dimension (preference m, a,
+  e) as one bin, and the engine stacks over y.
+- **Companion weights.** Each draw's completeness-over-prior is multiplied
+  by the product of the marginalized dimensions' population densities (zero
+  outside their bounds); orvara's interim priors are flat in each
+  dimension's coordinate, so no further division is needed
+  (`main.weigh_dimension_samples`).
+- **Host completeness fallback.** Host values that are NaN *or exactly
+  zero* fall back to the sample average at the same point. Zeros were
+  added because slicing leaves few injections per box, so "0 of N
+  recovered" occurs where true completeness is small but positive; a
+  detected companion cannot have zero completeness. In the first all-star
+  run about 21% of draws fell back.
+- **Sliced average.** Points where no star has an estimate in a slice take
+  the value of the next lower-e slice (1,114 points over all slices for all
+  stars, mostly in the top slice).
+- **Expected detections** use the sample-average completeness only
+  (`use_average_completeness=True`); per-star exposure is not implemented
+  for explicit roles.
+- **Mass-ratio Tier 1 folders** (qtrue, qsini) are not supported with
+  explicit roles yet: the default mass distribution is in M_Jup.
+- **Missing posterior eccentricities.** GL 876 (b, c, d), HD 219134
+  (b-f), and HD 28185 (b, c) use literature values, drawn from split
+  normals truncated to [0, 1) independently of a and m
+  (`sampling_utils.LITERATURE_ECCENTRICITIES`, matched to the posterior
+  files' companion indices by semi-major axis).
+- **Eccentricity models (step 7):** `beta` (A, alpha, beta), `rayleigh`
+  (A, sigma_e), and `ecc_mixture` (A, f1, sigma1, sigma2; sigma1 < sigma2),
+  each A f(e) with f normalized over the fitted e range. Priors are uniform
+  in the physical parameters: alpha, beta in [0.1, 20]; sigmas in
+  [0.005, 1]; f1 in [0, 1]. Like every model, A is per unit of the stacked
+  coordinate (per dex of mass when mass is the one-bin y slot); the
+  integrated occurrence the fits report multiplies by the stack width.
+- **Speed.** `completeness_utils.moving_average_grid` reproduces the
+  original moving-average estimator exactly and is about 500 times faster;
+  the sliced maps use it.
