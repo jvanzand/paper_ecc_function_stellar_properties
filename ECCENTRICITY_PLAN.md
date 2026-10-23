@@ -349,3 +349,9 @@ above. Each is documented in the code where it applies.
 - **Speed.** `completeness_utils.moving_average_grid` reproduces the
   original moving-average estimator exactly and is about 500 times faster;
   the sliced maps use it.
+- **Workflow (step 10).** Run configurations set `dimensions` in place of
+  `a_edges`/`m_edges` (`run_occurrence.ECC_DIMENSIONS`); `run_multiple`
+  now accepts either. Runs: `ecc_bounds` (all stars and the high/low mass,
+  metallicity, and activity samples; histogram, Beta, Rayleigh, and
+  two-Rayleigh models) and `stellar2params` (histogram only). Post-fit
+  products stack over m and use the eccentricity models.
