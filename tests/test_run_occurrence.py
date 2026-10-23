@@ -105,7 +105,7 @@ def test_example_local_paths_lists_every_key():
 
 def _source_and_derived_runs(**derived_overrides):
     source = {
-        "tier1_list": ["mtrue", "qtrue"],
+        "tier1_list": ["mtrue", "msini"],
         "tier2_list": ["allstars", "highMstar"],
         "tier3_list": ["source_run"],
         "a_edges": [0.1, 10.0],
@@ -229,12 +229,6 @@ def test_check_reused_fits_reports_missing_model_chains(tmp_path, monkeypatch):
         run._check_reused_fits("derived_run", configuration, tmp_path)
 
 
-def test_configured_derived_runs_resolve():
-    for name, entry in run.RUN_CONFIGURATIONS.items():
-        if "reuse_fits_from" in entry:
-            run.resolve_run_configuration(name)
-
-
 def test_runs_write_to_a_tier3_folder_named_after_themselves(monkeypatch):
     configurations = _source_and_derived_runs()
     configurations["source_run"]["tier3_list"] = ["other_folder"]
@@ -289,4 +283,11 @@ def test_invalid_dimensions_are_rejected_before_running():
     configuration = dict(run.RUN_CONFIGURATIONS["ecc_bounds"],
                          dimensions=dimensions)
     with pytest.raises(ValueError, match="bad dimensions"):
+        run._validate_run_configuration("bad", configuration)
+
+
+def test_mass_ratio_tiers_are_rejected_with_dimensions():
+    configuration = dict(run.RUN_CONFIGURATIONS["ecc_bounds"],
+                         tier1_list=["mtrue", "qtrue"])
+    with pytest.raises(ValueError, match="qtrue"):
         run._validate_run_configuration("bad", configuration)

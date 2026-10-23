@@ -337,8 +337,11 @@ above. Each is documented in the code where it applies.
 - **Missing posterior eccentricities.** GL 876 (b, c, d), HD 219134
   (b-f), and HD 28185 (b, c) use literature values, drawn from split
   normals truncated to [0, 1) independently of a and m
-  (`sampling_utils.LITERATURE_ECCENTRICITIES`, matched to the posterior
-  files' companion indices by semi-major axis).
+  (`sampling_utils.LITERATURE_ECCENTRICITIES`). The files order companions
+  by semi-major axis, inner first; each entry records the planet's
+  literature a, and sampling raises if the file disagrees. (The first pass
+  had HD 219134 misordered, giving HD 219134 e the eccentricity of b; fixed
+  2026-10-23. HD 28185 c's literature a is not yet recorded.)
 - **Eccentricity models (step 7):** `beta` (A, alpha, beta), `rayleigh`
   (A, sigma_e), and `ecc_mixture` (A, f1, sigma1, sigma2; sigma1 < sigma2),
   each A f(e) with f normalized over the fitted e range. Priors are uniform

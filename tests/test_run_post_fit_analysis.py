@@ -134,7 +134,7 @@ def test_variables_include_each_runs_own_samples(tmp_path, monkeypatch,
     _use_products(monkeypatch, variables={
         "function": "make_variables",
         "runs": ["ecc_bounds", "full_only"],
-        "tier1_dirs": ["mtrue", "qtrue"],
+        "tier1_dirs": ["mtrue", "msini"],
         "tier2_types": ["allstars", "Mstar"],
     })
 
@@ -144,8 +144,8 @@ def test_variables_include_each_runs_own_samples(tmp_path, monkeypatch,
     full_only = sorted(folder.relative_to(tmp_path) for folder in folders
                        if folder.name == "full_only")
     assert full_only == [
+        post_fit.Path("msini/allstars/full_only"),
         post_fit.Path("mtrue/allstars/full_only"),
-        post_fit.Path("qtrue/allstars/full_only"),
     ]
     # ecc_bounds has only mtrue
     assert len(folders) == 3 + 2
@@ -167,9 +167,9 @@ def test_variables_reject_samples_no_run_has(tmp_path, monkeypatch,
     _use_products(monkeypatch, variables={
         "function": "make_variables",
         "runs": ["ecc_bounds", "full_only"],
-        "tier1_dirs": ["msini"], "tier2_types": ["allstars"],
+        "tier1_dirs": ["qsini"], "tier2_types": ["allstars"],
     })
-    with pytest.raises(ValueError, match="msini"):
+    with pytest.raises(ValueError, match="qsini"):
         post_fit.resolve_product("variables", tmp_path)
 
 

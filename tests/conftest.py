@@ -28,7 +28,7 @@ def extra_runs(monkeypatch):
                              tier3_list=["three_params"]),
         "three_params_alt": dict(base, tier2_list=THREE_PARAMETER_SAMPLES,
                                  tier3_list=["three_params_alt"]),
-        "full_only": dict(base, tier1_list=["mtrue", "qtrue"],
+        "full_only": dict(base, tier1_list=["mtrue", "msini"],
                           tier2_list=["allstars"], tier3_list=["full_only"]),
         "standalone": dict(base, tier2_list=["narrow_cuts"],
                            tier3_list=["standalone"]),

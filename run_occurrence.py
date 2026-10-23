@@ -474,6 +474,15 @@ def _validate_run_configuration(name, configuration):
             occurrence_dimensions.parse_dimensions(configuration["dimensions"])
         except (KeyError, TypeError, ValueError) as error:
             raise ValueError("{} dimensions: {}".format(name, error)) from error
+        # The default mass distribution is in Jupiter masses, so mass-ratio
+        # Tier 1 spaces cannot be marginalized or fit with it yet
+        ratio_tiers = sorted(set(configuration.get("tier1_list", []))
+                             & {"qtrue", "qsini"})
+        if ratio_tiers:
+            raise ValueError(
+                "{} sets dimensions, which do not support mass-ratio Tier 1 "
+                "spaces yet: {}".format(name, ratio_tiers)
+            )
         edge_names = ()
     else:
         edge_names = ("a_edges", "m_edges")
