@@ -7,7 +7,8 @@ code work: each step lists the goal, the current state, the design, the files
 to change, tests, and what "done" means. Update it as decisions change.
 
 - **Code branch:** every `occurrence` change goes on `ecc_added`, branched
-  from `parametric_refactor`. Merge back only after step 9 passes.
+  from `master` (after `parametric_refactor` was merged into it). Merge back
+  into `master` only after step 9 passes.
 - **This repo** gets its run, post-fit, and collection scripts (mirroring
   `paper_mass_function_stellar_properties` and
   `paper_sma_function_stellar_properties`) once steps 1-5 make an
@@ -44,6 +45,12 @@ weakest where known correlations exist (tidal circularization at
 a < ~0.1 AU; possibly higher eccentricity for more massive giants), so step 9
 checks it by splitting on a marginalized dimension.
 
+**Keep this visible in the code.** Every function that marginalizes (the
+injection weights, the marginal completeness maps, and the likelihood terms
+for marginalized dimensions) states the independence assumption in its
+docstring, and the run option that sets `marginal_distributions` repeats it
+in a comment, so a reader cannot miss it.
+
 ## Default marginal distributions
 
 Used whenever a dimension is marginalized, unless a run overrides them. Each
@@ -73,8 +80,11 @@ assumed.
 - **True-mass maps** are made by drawing 10 isotropic inclinations per
   injection (`completeness_utils.recs_msini_converter`); each realization
   keeps the injection's recovery outcome.
-- **Companion posteriors** (orvara, `resampled_posteriors_1ksamples/*.h5`)
-  hold `msec`, `sau`, `esino`, `ecoso` per companion. orvara samples
+- **Companion posteriors** (orvara, `resampled_posteriors_1ksamples/*.h5`,
+  1000 draws per system) hold `msec`, `sau`, `esino`, `ecoso` per companion,
+  except GL 876, HD 219134, and HD 28185 (10 companions), whose files have
+  only `sau` and `msec`. Those need eccentricity posteriors or must be
+  excluded from eccentricity fits. orvara samples
   sqrt(e) sin(omega) and sqrt(e) cos(omega) uniformly over the unit disk, so
   its prior is uniform in e, as well as log-uniform in a and M.
 
@@ -135,9 +145,29 @@ assumed.
   (sum w)^2 / sum w^2, and flag cells below a threshold.
 - **Files:** new `injection_weights.py`; `completeness_utils.py` (binning
   with weights).
+- **Edges of the injection window.** The K window (0.1-1000 m/s) leaves no
+  injections at high mass and short period (e.g. 50 M_Jup inside ~0.1 AU)
+  and shifts with stellar mass and e, through K proportional to
+  M sin i P^(-1/3) (1 - e^2)^(-1/2). Three ways this can go wrong:
+  - *Averaging over missing coverage.* If a marginalized dimension's
+    completeness is the weighted fraction of the injections that exist, the
+    unsampled region simply drops out of the average. That region is mostly
+    high-K, where completeness is near 1, so the marginal completeness would
+    be biased low. Fill unsampled regions first, with the same physical rule
+    as `fill_completeness_nans` (1 above, 0 below the sampled range), then
+    average with the target weights over the full range.
+  - *Weights that blow up.* The injection density falls toward the window
+    edges, so target/density becomes large there and a few injections
+    dominate a cell. Cap the weights, and use the effective count to flag
+    cells.
+  - *True-mass edges.* Inclination draws spread each injection to higher
+    true mass, so the injection density in log M_true is the M sin i density
+    convolved with the sin i distribution and is not flat near the edges.
+    Compute weights with that convolved density, not a constant.
 - **Tests:** with uniform weights the maps equal today's; reweighting a
   synthetic set drawn from one distribution reproduces maps from another;
-  effective counts match analytic cases.
+  effective counts match analytic cases; marginalizing over a range that
+  extends past the injection window matches the filled analytic result.
 - **Done when:** maps can be built for any role assignment, with
   effective-count diagnostics saved alongside them.
 
