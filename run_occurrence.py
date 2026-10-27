@@ -97,7 +97,7 @@ RUN_CONFIGURATIONS = {
 
 # Names from RUN_CONFIGURATIONS to execute when main() is called without
 # run_names (including ``python run_occurrence.py``). Set to None to run every entry.
-RUNS_TO_DO = None
+RUNS_TO_DO = ['ecc_bounds']
 
 
 # Keys a run with ``reuse_fits_from`` may set. Everything else, including bin
@@ -132,16 +132,16 @@ RUN_DEFAULTS = {
     "plot_occurrence": True,
     "plot_density": True,
     "plot_cumulative": True,
-    "plot_corner": False,
-    "plot_catalog_roi": False,
-    "plot_roi_occurrence": False,
+    "plot_corner": True,
+    "plot_catalog_roi": True,
+    "plot_roi_occurrence": True,
     "plot_uncorrected_occurrence_mle": True,
     "occurrence_legend_loc": "upper right",
     "completeness_type": "single",
     "plot_tier1_maps": False,
     "integration_resolution": (100, 100),
     "use_average_completeness": True,
-    "piecewise_parameterization": "gp",
+    "piecewise_parameterization": "independent",
     "piecewise_gp_amplitude": 1.0,
     "piecewise_gp_length_scale_a": None,
     "piecewise_gp_length_scale_m": None,
@@ -161,12 +161,12 @@ RUN_DEFAULTS = {
     "ecc_amplitude_bounds": (1e-6, 10.0),
     "loglinear_amplitude_bounds": (1e-6, 10.0),
     "nwalkers": 50,
-    "nsteps": 5000,
-    "burnin": 2000,
+    "nsteps": 500,
+    "burnin": 200,
     # Production and burn-in steps for the piecewise model alone; None uses
     # nsteps and burnin.
-    "piecewise_nsteps": 30000,
-    "piecewise_burnin": 5000,
+    "piecewise_nsteps": 3000,
+    "piecewise_burnin": 500,
     # Fits whose chains span fewer autocorrelation times than this are named
     # in a warning after each run; every experiment also gets
     # saved_chains/convergence.txt with per-parameter details.
