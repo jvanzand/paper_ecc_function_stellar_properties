@@ -291,3 +291,27 @@ def test_mass_ratio_tiers_are_rejected_with_dimensions():
                          tier1_list=["mtrue", "qtrue"])
     with pytest.raises(ValueError, match="qtrue"):
         run._validate_run_configuration("bad", configuration)
+
+
+def test_maps_only_builds_maps_without_fits_or_plots(monkeypatch, tmp_path):
+    calls = []
+    monkeypatch.setattr(run.occurrence_run, "run_multiple",
+                        lambda **kwargs: calls.append(kwargs) or [])
+    monkeypatch.setattr(run, "write_run_summary", lambda *args: None)
+    run.main(run_names=["ecc_bounds"], maps_only=True, output_dir=tmp_path,
+             recoveries_dir=tmp_path, comp_post_dir=tmp_path)
+    assert [(call["run_fits"], call["make_plots"]) for call in calls] == [
+        (False, False)
+    ]
+    with pytest.raises(ValueError, match="maps_only"):
+        run.main(run_names=["ecc_bounds"], maps_only=True, run_fits=True,
+                 output_dir=tmp_path, recoveries_dir=tmp_path,
+                 comp_post_dir=tmp_path)
+
+
+@pytest.mark.parametrize("option", ["plot_catalog_roi", "avg_map_only"])
+def test_dimension_runs_refuse_unsupported_options(option):
+    configuration = dict(run.RUN_CONFIGURATIONS["ecc_bounds"],
+                         **{option: True})
+    with pytest.raises(ValueError, match=option):
+        run._validate_run_configuration("ecc_bounds", configuration)

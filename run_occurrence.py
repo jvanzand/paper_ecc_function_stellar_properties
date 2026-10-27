@@ -37,23 +37,40 @@ if str(OCCURRENCE_DIR.parent) not in sys.path:
     sys.path.insert(0, str(OCCURRENCE_DIR.parent))
 
 from occurrence import dimensions as occurrence_dimensions  # noqa: E402
+from occurrence import marginal_distributions as md  # noqa: E402
 from occurrence import run as occurrence_run  # noqa: E402
 from occurrence import sampling_utils as su  # noqa: E402
 
 from config_dict import tier2_df_cuts_dict  # noqa: E402
 
 
-# Every run fits eccentricity in five bins of width 0.2 and marginalizes
-# semi-major axis (0.1-30 AU) and companion mass (0.4-50 MJ) with the flat
-# defaults of occurrence.marginal_distributions (uniform per dex, the same
-# weighting as one stacked bin). The literature distributions are opt-in
-# through occurrence.marginal_distributions.population_marginal. Marginalizing
-# assumes a and m are independent of e (see that module's docstring).
+# Every run fits eccentricity and marginalizes semi-major axis and companion
+# mass: each companion's draws inside the a and m ranges count, and the
+# expected number of detections averages completeness over those ranges.
+#
+# Fit bins (ECC_EDGES) can be as fine as you like: they are separate from the
+# completeness maps' fixed e slices (occurrence.completeness_utils.
+# ECC_SLICE_EDGES: 0-0.6 in steps of 0.1, then 0.6-0.8 and 0.8-1), and
+# completeness is constant within a slice. The 0.8-1 slice holds only about
+# six injected orbits per star (60 rows, counting each orbit's 10
+# inclination copies), so completeness there is poorly measured.
 ECC_EDGES = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+A_BOUNDS = (0.1, 30.0)     # AU
+M_BOUNDS = (0.4, 50.0)     # M_Jup
 ECC_DIMENSIONS = {
     "e": {"role": "fit", "edges": ECC_EDGES},
-    "a": {"role": "marginalize", "bounds": (0.1, 30.0)},
-    "m": {"role": "marginalize", "bounds": (0.4, 50.0)},
+    # How companions are assumed to spread within a marginalized range, for
+    # the expected number of detections. Flat per dex is the default and
+    # treats each range exactly like one stacked bin of the original a-m
+    # fits. md.population_marginal("a", A_BOUNDS) (Fulton et al. 2021 broken
+    # power law) or md.population_marginal("m", M_BOUNDS) (log-normal mass
+    # function) swaps in a literature shape, e.g. as a sensitivity check.
+    # Marginalizing assumes a and m are independent of e (see
+    # occurrence.marginal_distributions).
+    "a": {"role": "marginalize", "bounds": A_BOUNDS,
+          "distribution": md.default_marginal("a", A_BOUNDS)},
+    "m": {"role": "marginalize", "bounds": M_BOUNDS,
+          "distribution": md.default_marginal("m", M_BOUNDS)},
 }
 ECC_MODELS = ["piecewise", "beta", "rayleigh", "ecc_mixture"]
 
@@ -99,6 +116,14 @@ RUN_CONFIGURATIONS = {
 # run_names (including ``python run_occurrence.py``). Set to None to run every entry.
 RUNS_TO_DO = ['ecc_bounds']
 
+# True builds only the completeness maps (and companion catalogs) of the
+# selected runs, without fitting or plotting fits. Each Tier 2 folder then
+# holds the e-slice maps, avg_map_eslices/sliced_average_maps.png, and the
+# completeness the fit uses, avg_map_<token>/average_completeness.png; both
+# images are also made by every full run. Per-star slice maps live in
+# <tier1>/saved_maps_<tier1>_eslices/.
+MAPS_ONLY = False
+
 
 # Keys a run with ``reuse_fits_from`` may set. Everything else, including bin
 # edges and fit settings, is inherited from the source run so the plots always
@@ -120,6 +145,9 @@ RUN_DEFAULTS = {
     "run_fits": True,
     "make_plots": True,
     "prepare_missing": True,
+    # Not supported with dimensions: per-star maps are always used, and a
+    # draw falls back to the sample average where its host's value is
+    # missing or zero (fill_single_nan_with_average)
     "avg_map_only": False,
     "fill_single_nan_with_average": True,
     "run_models_list": ["piecewise"],
@@ -133,8 +161,11 @@ RUN_DEFAULTS = {
     "plot_density": True,
     "plot_cumulative": True,
     "plot_corner": True,
-    "plot_catalog_roi": True,
-    "plot_roi_occurrence": True,
+    # Both draw the original a-m average map, which runs with dimensions do
+    # not make; occurrence refuses them for these runs. The Tier 2 images
+    # described at MAPS_ONLY replace them.
+    "plot_catalog_roi": False,
+    "plot_roi_occurrence": False,
     "plot_uncorrected_occurrence_mle": True,
     "occurrence_legend_loc": "upper right",
     "completeness_type": "single",
@@ -474,6 +505,14 @@ def _validate_run_configuration(name, configuration):
             occurrence_dimensions.parse_dimensions(configuration["dimensions"])
         except (KeyError, TypeError, ValueError) as error:
             raise ValueError("{} dimensions: {}".format(name, error)) from error
+        settings = dict(RUN_DEFAULTS, **configuration)
+        refused = [key for key in ("plot_catalog_roi", "plot_roi_occurrence",
+                                   "avg_map_only") if settings.get(key)]
+        if refused:
+            raise ValueError(
+                "{} sets dimensions, which do not support {}; set them to "
+                "False".format(name, ", ".join(refused))
+            )
         # The default mass distribution is in Jupiter masses, so mass-ratio
         # Tier 1 spaces cannot be marginalized or fit with it yet
         ratio_tiers = sorted(set(configuration.get("tier1_list", []))
@@ -527,6 +566,7 @@ def main(
         validate_only=False,
         dry_run=False,
         plots_only=False,
+        maps_only=False,
         run_fits=None,
         make_plots=None,
         rebuild_star_catalog=False,
@@ -537,7 +577,9 @@ def main(
 
     ``run_names`` selects keys from ``RUN_CONFIGURATIONS``; when omitted,
     ``RUNS_TO_DO`` is used, and ``None`` there means every run. ``plots_only``
-    reuses saved chains instead of fitting. ``run_fits=True`` always reruns
+    reuses saved chains instead of fitting. ``maps_only`` builds the
+    completeness maps, catalogs, and map images and stops (see MAPS_ONLY).
+    ``run_fits=True`` always reruns
     the Tier 3 fits and overwrites their saved products. Set
     ``make_plots=False`` to skip plots.
     ``dry_run`` reports expanded sample sizes and paths without creating
@@ -590,6 +632,10 @@ def main(
 
     if plots_only and run_fits is True:
         raise ValueError("plots_only=True conflicts with run_fits=True")
+    if maps_only and (plots_only or run_fits or make_plots):
+        raise ValueError(
+            "maps_only=True conflicts with plots_only, run_fits, and make_plots"
+        )
 
     results = []
     for name, configuration in configurations.items():
@@ -616,6 +662,9 @@ def main(
             arguments["run_fits"] = run_fits
         if make_plots is not None:
             arguments["make_plots"] = make_plots
+        if maps_only:
+            arguments["run_fits"] = False
+            arguments["make_plots"] = False
         if derived:
             arguments["run_fits"] = False
         results.extend(occurrence_run.run_multiple(**arguments))
@@ -640,7 +689,7 @@ def write_run_summary(results, path):
 
 
 if __name__ == "__main__":
-    main(run_names=RUNS_TO_DO)
+    main(run_names=RUNS_TO_DO, maps_only=MAPS_ONLY)
     
     
     
