@@ -44,6 +44,7 @@ from occurrence import sampling_utils as su  # noqa: E402
 from config_dict import tier2_df_cuts_dict  # noqa: E402
 
 
+
 # Every run fits eccentricity and marginalizes semi-major axis and companion
 # mass: each companion's draws inside the a and m ranges count, and the
 # expected number of detections averages completeness over those ranges.
@@ -54,7 +55,7 @@ from config_dict import tier2_df_cuts_dict  # noqa: E402
 # completeness is constant within a slice. The 0.8-1 slice holds only about
 # six injected orbits per star (60 rows, counting each orbit's 10
 # inclination copies), so completeness there is poorly measured.
-ECC_EDGES = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
+ECC_EDGES = [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0]
 A_BOUNDS = (0.1, 30.0)     # AU
 M_BOUNDS = (0.4, 50.0)     # M_Jup
 ECC_DIMENSIONS = {
@@ -72,7 +73,7 @@ ECC_DIMENSIONS = {
     "m": {"role": "marginalize", "bounds": M_BOUNDS,
           "distribution": md.default_marginal("m", M_BOUNDS)},
 }
-ECC_MODELS = ["piecewise", "beta", "rayleigh", "ecc_mixture"]
+ECC_MODELS = ["piecewise"]#, "beta", "rayleigh"]
 
 # Each entry becomes one call to occurrence.run.run_multiple(). Keep separate
 # experiments here instead of copying or commenting out call blocks.
@@ -80,16 +81,34 @@ RUN_CONFIGURATIONS = {
 
     # Main run: eccentricity functions of the full sample and each stellar
     # subsample
-    "ecc_bounds": {
+    "ecc_bounds_noGP_fine": {
         "tier1_list": ["mtrue"],
         "tier2_list": [
             "allstars", "highMstar", "lowMstar", "highFeH", "lowFeH",
             "highAct", "lowAct",
         ],
-        "tier3_list": ["ecc_bounds"],
+        "tier3_list": ["ecc_bounds_noGP_fine"],
         "dimensions": ECC_DIMENSIONS,
         "run_models_list": ECC_MODELS,
         "plot_models_list": ECC_MODELS,
+        
+        "piecewise_parameterization": "independent",
+
+        "run_fits": True,
+        "make_plots": True,
+    },
+    "ecc_bounds_GP_fine": {
+        "tier1_list": ["mtrue"],
+        "tier2_list": [
+            "allstars", "highMstar", "lowMstar", "highFeH", "lowFeH",
+            "highAct", "lowAct",
+        ],
+        "tier3_list": ["ecc_bounds_GP_fine"],
+        "dimensions": ECC_DIMENSIONS,
+        "run_models_list": ['piecewise'],
+        "plot_models_list": ['piecewise'],
+        
+        "piecewise_parameterization": "gp",
 
         "run_fits": True,
         "make_plots": True,
@@ -114,7 +133,7 @@ RUN_CONFIGURATIONS = {
 
 # Names from RUN_CONFIGURATIONS to execute when main() is called without
 # run_names (including ``python run_occurrence.py``). Set to None to run every entry.
-RUNS_TO_DO = ['ecc_bounds']
+RUNS_TO_DO = ['ecc_bounds_noGP_fine', 'ecc_bounds_GP_fine']
 
 # True builds only the completeness maps (and companion catalogs) of the
 # selected runs, without fitting or plotting fits. Each Tier 2 folder then
@@ -192,12 +211,12 @@ RUN_DEFAULTS = {
     "ecc_amplitude_bounds": (1e-6, 10.0),
     "loglinear_amplitude_bounds": (1e-6, 10.0),
     "nwalkers": 50,
-    "nsteps": 500,
-    "burnin": 200,
+    "nsteps": 5000,
+    "burnin": 2000,
     # Production and burn-in steps for the piecewise model alone; None uses
     # nsteps and burnin.
-    "piecewise_nsteps": 3000,
-    "piecewise_burnin": 500,
+    "piecewise_nsteps": 30000,
+    "piecewise_burnin": 5000,
     # Fits whose chains span fewer autocorrelation times than this are named
     # in a warning after each run; every experiment also gets
     # saved_chains/convergence.txt with per-parameter details.
