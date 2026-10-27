@@ -53,8 +53,13 @@ in a comment, so a reader cannot miss it.
 
 ## Default marginal distributions
 
-Used whenever a dimension is marginalized, unless a run overrides them. Each
-is normalized over its range; only its shape matters.
+**Changed 2026-10-27 (`occurrence` 4f34d63):** the default is now flat in
+each dimension's coordinate (uniform per dex in a and m, per unit e), the
+same weighting a stacked bin of a fitted dimension gets. The distributions
+below are opt-in through `marginal_distributions.population_marginal(name,
+bounds)` as a dimension's `distribution`. The first results below used them.
+
+Each is normalized over its range; only its shape matters.
 
 | Dimension | Distribution | Range | Code form |
 |---|---|---|---|
@@ -420,6 +425,11 @@ above. Each is documented in the code where it applies.
   products stack over m and use the eccentricity models.
 
 ## First results (2026-10-22, `ecc_added` 4c9c3ab, not production runs)
+
+These used the earlier population defaults (broken power law in a,
+log-normal in m). With the flat defaults, rerun the mocks and the all-star
+fit before quoting any of these numbers; the regression check, the slice
+counts, and the cost are unaffected.
 
 - **Regression.** Seeded, shortened mass- and SMA-function runs on master
   and on `ecc_added` match in all 6,515 output arrays and tables

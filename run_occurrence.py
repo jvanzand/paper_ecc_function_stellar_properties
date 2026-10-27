@@ -44,11 +44,11 @@ from config_dict import tier2_df_cuts_dict  # noqa: E402
 
 
 # Every run fits eccentricity in five bins of width 0.2 and marginalizes
-# semi-major axis and companion mass over the default population
-# distributions of occurrence.marginal_distributions: Fulton et al. (2021)
-# broken power law in a over 0.1-30 AU, and the log-normal mass function over
-# 0.4-50 MJ. Marginalizing assumes a and m are independent of e (see that
-# module's docstring).
+# semi-major axis (0.1-30 AU) and companion mass (0.4-50 MJ) with the flat
+# defaults of occurrence.marginal_distributions (uniform per dex, the same
+# weighting as one stacked bin). The literature distributions are opt-in
+# through occurrence.marginal_distributions.population_marginal. Marginalizing
+# assumes a and m are independent of e (see that module's docstring).
 ECC_EDGES = [0.0, 0.2, 0.4, 0.6, 0.8, 1.0]
 ECC_DIMENSIONS = {
     "e": {"role": "fit", "edges": ECC_EDGES},

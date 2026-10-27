@@ -4,8 +4,8 @@ Usage: python diagnostics.py <ecc_run_dir> <figure_dir> [<reference_run_dir>]
 
 1. sliced_average_maps.png: the all-star average completeness in (a, m) for
    each eccentricity slice.
-2. completeness_vs_e.png: completeness marginalized over a and m (default
-   population distributions) as a function of e, which is what the
+2. completeness_vs_e.png: completeness marginalized over a and m (the
+   run's marginal distributions, flat by default) as a function of e, which is what the
    eccentricity fit's expected-detection term uses, for all stars.
 3. slice_counts.png: injections per star in each e slice (after the 10
    inclination draws), with the share of NaN cells in each star's slice map.

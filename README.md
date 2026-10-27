@@ -16,7 +16,7 @@ posteriors it relies on.
 1. `python run_occurrence.py`: runs every entry of `RUN_CONFIGURATIONS`.
    Each run sets `dimensions`: eccentricity is fit in five bins
    (`ECC_EDGES`), and semi-major axis (0.1-30 AU) and companion mass
-   (0.4-50 MJ) are marginalized over the default population distributions
+   (0.4-50 MJ) are marginalized with the flat (uniform per dex) defaults
    of `occurrence.marginal_distributions`. That assumes a and m are
    independent of e. Models: histogram (`piecewise`), Beta, Rayleigh, and
    a two-Rayleigh mixture (`ecc_mixture`).

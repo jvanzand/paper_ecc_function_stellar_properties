@@ -3,7 +3,7 @@
 Usage: python mock_validation.py <ecc_run_dir> <mock_dir> <sigma_e> <seed>
 
 Draws companions around the CLS stars from a known population (a and m from
-the default marginal distributions, e from Beta(1.5, 4)), detects each with
+the run's marginal distributions, flat by default, e from Beta(1.5, 4)), detects each with
 its host's eccentricity-sliced completeness, gives detected companions
 Gaussian "posteriors" (flat priors: log-uniform in a and m, uniform in e,
 like orvara), and weights them with the same code as the real catalog. Then
