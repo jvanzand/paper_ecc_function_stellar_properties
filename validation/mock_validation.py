@@ -103,7 +103,7 @@ for index in range(n_true):
 
 mock_stars = star_df.copy()
 mock_stars["comp_list"] = comp_lists
-catalog, _ = main.weigh_dimension_samples(spec, samples, mock_stars, maps_dir,
+catalog, _, _ = main.weigh_dimension_samples(spec, samples, mock_stars, maps_dir,
                                           average)
 np.savez(main.dimension_tier2_paths(tier1, "allstars", spec)["catalog"],
          **catalog)

@@ -87,6 +87,9 @@ sources.append(("stored (used)", stored))
 
 print(f"{companion} (host {host}) in {tier2}: {inside.sum()} of {a.size} "
       f"draws inside the marginalized a and m ranges")
+if not inside.any():
+    sys.exit("None of its draws are inside the marginalized ranges, so the "
+             "fit does not use its completeness")
 draw_slices = cu.eccentricity_slice_index(e, average.e_edges)
 used_slices = sorted(set(draw_slices[inside]))
 for index in used_slices:
