@@ -16,3 +16,10 @@ Run from a scratch directory; each writes beneath the paths it is given.
 - `diagnostics.py <ecc_run_dir> <figure_dir> [<reference_run_dir>]`: the
   sliced average completeness maps, completeness vs. e, and injection
   counts per slice.
+- `companion_completeness.py <tier2> <companion> [<results_dir>]`: for one
+  companion of an eccentricity run (e.g. `highMstar 120066_0`), the
+  completeness its draws get in each e slice from the host map, the
+  subsample average, and the all-star average; how many stars and host
+  injections support the average there; and a figure of those maps around
+  the draws. Use it when a fit reports a companion with zero
+  completeness/prior.
